@@ -211,6 +211,7 @@ __marimo__/
 data/chroma_db/
 data/documents/*
 !data/documents/.gitkeep
+data/index_metadata.json
 
 # Logs
 logs/
