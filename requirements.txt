@@ -1,6 +1,8 @@
 # Core dependencies
 anthropic>=0.30.0
-voyageai>=0.2.0
+
+# Local embeddings (completely free)
+sentence-transformers>=2.2.0
 
 # LangGraph for agent orchestration
 langgraph>=0.2.0

@@ -1,23 +1,23 @@
 """
 Vector Store Wrapper
 
-ChromaDB wrapper with Voyage AI embeddings integration.
+ChromaDB wrapper with local Sentence Transformers embeddings.
 Handles document indexing, retrieval, and metadata filtering.
 """
 
 import os
 from typing import List, Dict, Optional
-import voyageai
 import chromadb
 from chromadb.config import Settings
+from sentence_transformers import SentenceTransformer
 
 
 class VectorStore:
     """
-    Vector store using ChromaDB and Voyage AI embeddings.
+    Vector store using ChromaDB and local Sentence Transformers embeddings.
 
     Features:
-    - Document indexing with Voyage AI embeddings
+    - Document indexing with local embeddings (completely free)
     - Vector similarity search
     - Metadata filtering
     - Collection management
@@ -28,28 +28,24 @@ class VectorStore:
         collection_name: str = "note2agent_docs",
         chromadb_host: str = "localhost",
         chromadb_port: int = 8000,
-        voyage_api_key: Optional[str] = None,
-        voyage_model: str = "voyage-2"
+        embedding_model: str = "BAAI/bge-small-en-v1.5"
     ):
         """
-        Initialize vector store.
+        Initialize vector store with local embeddings.
 
         Args:
             collection_name: Name of ChromaDB collection
             chromadb_host: ChromaDB server host
             chromadb_port: ChromaDB server port
-            voyage_api_key: Voyage AI API key (or set VOYAGE_API_KEY env var)
-            voyage_model: Voyage AI model name
+            embedding_model: Sentence Transformers model name
         """
         self.collection_name = collection_name
-        self.voyage_model = voyage_model
+        self.embedding_model_name = embedding_model
 
-        # Initialize Voyage AI client
-        api_key = voyage_api_key or os.getenv("VOYAGE_API_KEY")
-        if not api_key:
-            raise ValueError("Voyage AI API key not provided")
-
-        self.voyage_client = voyageai.Client(api_key=api_key)
+        # Initialize Sentence Transformers model (downloads on first use)
+        print(f"Loading embedding model: {embedding_model}")
+        self.embedding_model = SentenceTransformer(embedding_model)
+        print("✓ Embedding model loaded")
 
         # Initialize ChromaDB client
         self.chroma_client = chromadb.HttpClient(
@@ -78,7 +74,7 @@ class VectorStore:
         texts = [chunk["text"] for chunk in chunks]
         metadatas = [chunk["metadata"] for chunk in chunks]
 
-        # Generate embeddings using Voyage AI
+        # Generate embeddings using local model
         print(f"Generating embeddings for {len(texts)} chunks...")
         embeddings = self._generate_embeddings(texts)
 
@@ -175,7 +171,7 @@ class VectorStore:
         return {
             "collection_name": self.collection_name,
             "total_chunks": count,
-            "model": self.voyage_model
+            "model": self.embedding_model_name
         }
 
     def clear_collection(self) -> None:
@@ -195,7 +191,7 @@ class VectorStore:
 
     def _generate_embeddings(self, texts: List[str]) -> List[List[float]]:
         """
-        Generate embeddings using Voyage AI.
+        Generate embeddings using local Sentence Transformers model.
 
         Args:
             texts: List of texts to embed
@@ -203,23 +199,15 @@ class VectorStore:
         Returns:
             List of embedding vectors
         """
-        # Voyage AI has batch limits, so we process in batches
-        batch_size = 128
-        all_embeddings = []
+        # Generate embeddings (handles batching automatically)
+        embeddings = self.embedding_model.encode(
+            texts,
+            show_progress_bar=True,
+            convert_to_numpy=True
+        )
 
-        for i in range(0, len(texts), batch_size):
-            batch = texts[i:i + batch_size]
-
-            # Call Voyage AI API
-            result = self.voyage_client.embed(
-                batch,
-                model=self.voyage_model,
-                input_type="document"
-            )
-
-            all_embeddings.extend(result.embeddings)
-
-        return all_embeddings
+        # Convert numpy arrays to lists
+        return embeddings.tolist()
 
     def health_check(self) -> bool:
         """
@@ -241,7 +229,8 @@ class VectorStore:
 def create_vector_store(
     collection_name: str = "note2agent_docs",
     chromadb_host: str = "localhost",
-    chromadb_port: int = 8000
+    chromadb_port: int = 8000,
+    embedding_model: str = "BAAI/bge-small-en-v1.5"
 ) -> VectorStore:
     """
     Factory function to create a vector store instance.
@@ -250,6 +239,7 @@ def create_vector_store(
         collection_name: Name of ChromaDB collection
         chromadb_host: ChromaDB server host
         chromadb_port: ChromaDB server port
+        embedding_model: Sentence Transformers model name
 
     Returns:
         Initialized VectorStore instance
@@ -257,11 +247,12 @@ def create_vector_store(
     return VectorStore(
         collection_name=collection_name,
         chromadb_host=chromadb_host,
-        chromadb_port=chromadb_port
+        chromadb_port=chromadb_port,
+        embedding_model=embedding_model
     )
 
 
 # TODO: Add re-ranking functionality
 # TODO: Add hybrid search (vector + BM25)
 # TODO: Add batch update functionality
-# TODO: Add incremental indexing with change detection
+# TODO: Add support for other embedding models

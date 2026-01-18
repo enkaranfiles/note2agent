@@ -25,12 +25,6 @@ console = Console()
 
 def get_vector_store():
     """Initialize and return vector store instance"""
-    voyage_key = os.getenv("VOYAGE_API_KEY")
-    if not voyage_key:
-        console.print("\n[red]❌ ERROR: VOYAGE_API_KEY not found in .env file[/red]")
-        console.print("[yellow]Please add your Voyage AI API key to .env file[/yellow]\n")
-        sys.exit(1)
-
     try:
         vector_store = VectorStore(
             collection_name="note2agent_docs",
@@ -142,6 +136,46 @@ def clear():
     kb.clear()
 
     console.print("[green]✅ Knowledge base cleared successfully[/green]\n")
+
+
+@cli.command()
+@click.argument('question')
+@click.option('--top-k', default=5, help='Number of documents to retrieve')
+def query(question, top_k):
+    """
+    Query the knowledge base (agents not yet implemented).
+
+    QUESTION: Your question in quotes
+
+    Examples:
+        note2agent query "What is the main topic?"
+    """
+    console.print("\n[bold cyan]🔍 Searching Knowledge Base[/bold cyan]\n")
+
+    vector_store = get_vector_store()
+
+    # For now, just do basic vector search
+    # TODO: Replace with LangGraph agent workflow
+    console.print(f"[dim]Query: {question}[/dim]\n")
+
+    results = vector_store.search(question, top_k=top_k)
+
+    if not results:
+        console.print("[yellow]No results found[/yellow]\n")
+        return
+
+    console.print(f"[green]Found {len(results)} result(s):[/green]\n")
+
+    for i, result in enumerate(results, 1):
+        console.print(f"[bold cyan]Result {i}[/bold cyan]")
+        console.print(f"[dim]Source: {result['metadata']['source']} (Page {result['metadata'].get('page', 'N/A')})[/dim]")
+        console.print(f"[dim]Distance: {result['distance']:.4f}[/dim]")
+        console.print(f"\n{result['text'][:300]}...\n")
+        console.print("[dim]" + "─" * 60 + "[/dim]\n")
+
+    console.print("[yellow]⚠️  Note: Full RAG agents not yet implemented[/yellow]")
+    console.print("[yellow]   This is basic vector search only[/yellow]\n")
+
 
 if __name__ == '__main__':
     cli()
