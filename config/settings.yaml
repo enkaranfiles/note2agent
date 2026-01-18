@@ -1,0 +1,53 @@
+# Note2Agent Configuration
+
+# API Keys (override with environment variables)
+anthropic:
+  api_key: ${ANTHROPIC_API_KEY}
+  model: claude-3-5-sonnet-20241022
+  max_tokens: 4096
+
+voyage:
+  api_key: ${VOYAGE_API_KEY}
+  model: voyage-2
+
+# Vector Store
+chromadb:
+  persist_directory: ./data/chroma_db
+  collection_name: note2agent_docs
+
+# Document Processing
+documents:
+  source_directory: ./data/documents
+  supported_formats:
+    - pdf
+    - md
+    - txt
+  chunk_size: 512
+  chunk_overlap: 50
+
+# Retrieval Settings
+retrieval:
+  top_k: 20
+  min_similarity_score: 0.7
+  enable_reranking: true
+
+# Agent Settings
+agents:
+  orchestrator:
+    enabled: true
+  retriever:
+    enabled: true
+    auto_expand_query: true
+    clarification_threshold: 0.8
+  grounding:
+    enabled: true
+    dedup_threshold: 0.95
+  answerer:
+    enabled: true
+  verifier:
+    enabled: false  # Optional
+
+# Logging
+logging:
+  level: INFO
+  file: ./logs/note2agent.log

@@ -1,0 +1,31 @@
+# Agent-Specific Configuration
+
+orchestrator:
+  max_clarification_rounds: 3
+  timeout_seconds: 300
+
+retriever:
+  query_expansion_prompt: |
+    Analyze this query and expand it for better retrieval.
+    Identify any ambiguities (timeframes, entities, etc.).
+    Return: {expanded_query: str, ambiguities: list[str]}
+
+  clarification_prompt: |
+    The query has ambiguities: {ambiguities}
+    Generate clarification questions with 2-3 suggested options.
+
+grounding:
+  citation_format: "[{filename}:p{page}]"
+  max_docs_per_response: 10
+
+answerer:
+  system_prompt: |
+    You are a helpful assistant that answers questions based ONLY on the provided evidence.
+    Every claim must be supported by a citation.
+    If evidence is insufficient, clearly state what's missing.
+
+verifier:
+  verification_prompt: |
+    Review this answer and evidence.
+    Check: Is every claim supported by the evidence?
+    Return: {verified: bool, unsupported_claims: list[str], missing_info: list[str]}
